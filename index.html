@@ -1,519 +1,758 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#080d18">
-    <title>LIMITLESS — Sound Frequency Analyzer</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#07111f">
+<title>Sound Frequency Analyzer</title>
 
-    <style>
-        * { box-sizing: border-box; }
+<style>
+* {
+    box-sizing: border-box;
+}
 
-        body {
-            margin: 0;
-            padding: 16px;
-            background: #080d18;
-            color: #eaf4ff;
-            font-family: Arial, sans-serif;
-            text-align: center;
-        }
+body {
+    margin: 0;
+    padding: 20px;
+    background: #07111f;
+    color: #edf6ff;
+    font-family: Arial, sans-serif;
+}
 
-        h1 { color: #61d9ff; font-size: 27px; }
-        h2 { font-size: 21px; }
-        p { color: #b8c9dc; line-height: 1.5; }
+.container {
+    width: 100%;
+    max-width: 950px;
+    margin: auto;
+}
 
-        .panel {
-            max-width: 650px;
-            margin: 20px auto;
-            padding: 18px;
-            background: #111c2e;
-            border: 1px solid #24415d;
-            border-radius: 15px;
-        }
+header {
+    text-align: center;
+    margin-bottom: 25px;
+}
 
-        button {
-            padding: 13px 20px;
-            margin: 6px;
-            border: none;
-            border-radius: 9px;
-            background: #38bdf8;
-            color: #06111e;
-            font-size: 16px;
-            font-weight: bold;
-        }
+h1 {
+    color: #48d9ff;
+    margin-bottom: 8px;
+}
 
-        button:disabled { opacity: 0.5; }
+.subtitle {
+    color: #a8bdd1;
+    line-height: 1.5;
+}
 
-        #frequency {
-            font-size: 38px;
-            font-weight: bold;
-            color: #54f5b7;
-            margin: 20px 0;
-            overflow-wrap: anywhere;
-        }
+.panel {
+    background: #101e30;
+    border: 1px solid #263b53;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 18px;
+}
 
-        #status { color: #ffd166; }
+h2 {
+    font-size: 18px;
+    color: #48d9ff;
+    margin-top: 0;
+}
 
-        canvas {
-            display: block;
-            width: 100%;
-            height: 220px;
-            background: #050a12;
-            border: 1px solid #24415d;
-            border-radius: 8px;
-        }
+button {
+    background: #08a9d6;
+    color: #03131d;
+    border: none;
+    border-radius: 8px;
+    padding: 13px 18px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 5px 5px 5px 0;
+}
 
-        .details {
-            text-align: left;
-            line-height: 2;
-        }
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 
-        .graph-note {
-            font-size: 13px;
-            color: #8ca8c4;
-        }
+button.stop {
+    background: #ff647c;
+}
 
-        footer {
-            margin: 28px 0 10px;
-            color: #71869f;
-            font-size: 12px;
-        }
-    </style>
+button.secondary {
+    background: #293e56;
+    color: white;
+}
+
+.status {
+    color: #ffd479;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.metric {
+    background: #091626;
+    border-radius: 10px;
+    padding: 15px;
+    min-width: 0;
+}
+
+.metric-label {
+    color: #a8bdd1;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+.metric-value {
+    color: #48d9ff;
+    font-size: clamp(23px, 5vw, 32px);
+    font-weight: bold;
+    overflow-wrap: anywhere;
+}
+
+.metric-unit {
+    font-size: 13px;
+    color: #a8bdd1;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 250px;
+    background: #06101d;
+    border-radius: 8px;
+}
+
+.spectrum-canvas {
+    height: 220px;
+}
+
+.meter {
+    height: 15px;
+    background: #06101d;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.meter-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #20d6a0, #48d9ff, #ff647c);
+    transition: width 80ms linear;
+}
+
+label {
+    display: block;
+    margin: 15px 0 8px;
+    color: #c5d8e9;
+}
+
+select, input[type="range"] {
+    width: 100%;
+}
+
+select {
+    padding: 10px;
+    border-radius: 7px;
+    background: #091626;
+    color: white;
+    border: 1px solid #354b62;
+}
+
+.small {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #a8bdd1;
+}
+
+footer {
+    text-align: center;
+    padding: 20px 0;
+    color: #8299af;
+    font-size: 12px;
+}
+
+@media (max-width: 450px) {
+    body {
+        padding: 12px;
+    }
+
+    .panel {
+        padding: 14px;
+    }
+
+    canvas {
+        height: 210px;
+    }
+}
+</style>
 </head>
 
 <body>
+<div class="container">
+
+<header>
     <h1>Sound Frequency Analyzer</h1>
-    <p>Listen to real sounds and analyze their frequencies.</p>
+    <p class="subtitle">
+        Real-time microphone analysis, frequency spectrum,
+        dominant frequency and sound level.
+    </p>
+</header>
 
-    <div class="panel">
-        <h2>Live Microphone Analysis</h2>
+<section class="panel">
+    <h2>Microphone Control</h2>
 
-        <button id="startButton">Start Listening</button>
-        <button id="stopButton" disabled>Stop</button>
+    <button id="startButton">Start Analyzer</button>
+    <button id="stopButton" class="stop" disabled>Stop Analyzer</button>
+    <button id="resetButton" class="secondary">Reset Readings</button>
 
-        <p id="status">Microphone is off.</p>
+    <p id="status" class="status" role="status" aria-live="polite">
+        Ready. Press Start Analyzer and allow microphone access.
+    </p>
 
-        <div id="frequency">-- Hz</div>
-        <p>Estimated dominant frequency</p>
+    <label for="smoothing">Graph smoothing</label>
+    <input id="smoothing" type="range"
+           min="0" max="95" value="70">
 
-        <div class="details">
-            <div>Sound level: <strong id="level">--</strong></div>
-            <div>Sample rate: <strong id="sampleRate">--</strong></div>
-            <div>Analysis: <strong id="analysis">Waiting</strong></div>
+    <p class="small">
+        Tip: Use headphones or keep speakers at a low volume
+        to avoid feedback. Microphone access requires permission
+        and a secure connection such as HTTPS.
+    </p>
+</section>
+
+<section class="panel">
+    <h2>Live Measurements</h2>
+
+    <div class="metrics">
+        <div class="metric">
+            <div class="metric-label">Dominant Frequency</div>
+            <div class="metric-value">
+                <span id="frequency">--</span>
+            </div>
+            <div class="metric-unit">Hz</div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Sound Level</div>
+            <div class="metric-value">
+                <span id="volume">--</span>
+            </div>
+            <div class="metric-unit">dBFS</div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Estimated Pitch</div>
+            <div class="metric-value" id="pitch">--</div>
+            <div class="metric-unit">Nearest musical note</div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Sample Rate</div>
+            <div class="metric-value">
+                <span id="sampleRate">--</span>
+            </div>
+            <div class="metric-unit">Samples per second (Hz)</div>
         </div>
     </div>
+</section>
 
-    <div class="panel">
-        <h2>Frequency Spectrum</h2>
-        <p>Frequency energy across the microphone input.</p>
-        <canvas id="spectrum" width="600" height="220"></canvas>
-        <p class="graph-note">Left = lower frequencies. Right = higher frequencies.</p>
+<section class="panel">
+    <h2>Live Waveform</h2>
+    <p class="small">
+        Shows how the microphone signal changes over time.
+    </p>
+    <canvas id="waveform" aria-label="Live microphone waveform"></canvas>
+</section>
+
+<section class="panel">
+    <h2>Frequency Spectrum</h2>
+    <p class="small">
+        Frequency is shown horizontally and signal strength vertically.
+        The displayed spectrum depends on your device's sample rate.
+    </p>
+    <canvas id="spectrum" class="spectrum-canvas"
+            aria-label="Live frequency spectrum"></canvas>
+</section>
+
+<section class="panel">
+    <h2>Input Level</h2>
+    <div class="meter">
+        <div id="meterFill" class="meter-fill"></div>
     </div>
+    <p class="small">
+        The level meter shows relative microphone signal strength.
+        dBFS is a digital level, not calibrated sound pressure in dB SPL.
+    </p>
+</section>
 
-    <div class="panel">
-        <h2>Live Frequency History</h2>
-        <p>Track the dominant frequency as sounds change.</p>
-        <canvas id="history" width="600" height="260"></canvas>
-        <p class="graph-note">
-            The graph displays the last 30 seconds.
-            Vertical scale adjusts to detected frequencies.
-        </p>
-        <p id="historyStatus">Start listening to collect measurements.</p>
-    </div>
+<section class="panel">
+    <h2>Analyzer Information</h2>
+    <p id="info" class="small">
+        No microphone stream is active.
+    </p>
+</section>
 
-    <footer>LIMITLESS — SOUND RESEARCH PROJECT</footer>
+<footer>
+    Sound Frequency Analyzer · Live browser-based audio analysis
+</footer>
 
-    <script>
-        const startButton = document.getElementById("startButton");
-        const stopButton = document.getElementById("stopButton");
-        const statusText = document.getElementById("status");
-        const frequencyText = document.getElementById("frequency");
-        const levelText = document.getElementById("level");
-        const sampleRateText = document.getElementById("sampleRate");
-        const analysisText = document.getElementById("analysis");
-        const historyStatus = document.getElementById("historyStatus");
+</div>
 
-        const spectrumCanvas = document.getElementById("spectrum");
-        const spectrumCtx = spectrumCanvas.getContext("2d");
+<script>
+"use strict";
 
-        const historyCanvas = document.getElementById("history");
-        const historyCtx = historyCanvas.getContext("2d");
+const startButton = document.getElementById("startButton");
+const stopButton = document.getElementById("stopButton");
+const resetButton = document.getElementById("resetButton");
+const statusText = document.getElementById("status");
 
-        let audioContext = null;
-        let analyser = null;
-        let microphone = null;
-        let source = null;
-        let animationId = null;
-        let running = false;
+const frequencyText = document.getElementById("frequency");
+const volumeText = document.getElementById("volume");
+const pitchText = document.getElementById("pitch");
+const sampleRateText = document.getElementById("sampleRate");
+const meterFill = document.getElementById("meterFill");
+const infoText = document.getElementById("info");
+const smoothingInput = document.getElementById("smoothing");
 
-        const HISTORY_SECONDS = 30;
-        const historyData = [];
+const waveformCanvas = document.getElementById("waveform");
+const spectrumCanvas = document.getElementById("spectrum");
 
-        function drawGrid(ctx, width, height, divisions = 5) {
-            ctx.strokeStyle = "#172b40";
-            ctx.lineWidth = 1;
+const waveCtx = waveformCanvas.getContext("2d");
+const spectrumCtx = spectrumCanvas.getContext("2d");
 
-            for (let i = 0; i <= divisions; i++) {
-                const y = i * height / divisions;
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(width, y);
-                ctx.stroke();
-            }
+let audioContext = null;
+let analyser = null;
+let microphone = null;
+let source = null;
+let animationId = null;
+let timeData = null;
+let frequencyData = null;
+let running = false;
+
+function setStatus(message) {
+    statusText.textContent = message;
+}
+
+function resizeCanvas(canvas, context) {
+    const rect = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    const width = Math.max(1, Math.round(rect.width * dpr));
+    const height = Math.max(1, Math.round(rect.height * dpr));
+
+    if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+    }
+
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    return {
+        width: rect.width,
+        height: rect.height
+    };
+}
+
+function drawGrid(context, width, height, divisions = 5) {
+    context.strokeStyle = "#20364c";
+    context.lineWidth = 1;
+
+    for (let i = 0; i <= divisions; i++) {
+        const y = (height / divisions) * i;
+
+        context.beginPath();
+        context.moveTo(0, y);
+        context.lineTo(width, y);
+        context.stroke();
+    }
+}
+
+function drawWaveform() {
+    const { width, height } = resizeCanvas(waveformCanvas, waveCtx);
+
+    waveCtx.clearRect(0, 0, width, height);
+    drawGrid(waveCtx, width, height);
+
+    const middle = height / 2;
+
+    waveCtx.strokeStyle = "#48d9ff";
+    waveCtx.lineWidth = 2;
+    waveCtx.beginPath();
+
+    for (let i = 0; i < timeData.length; i++) {
+        const x = (i / (timeData.length - 1)) * width;
+        const y = middle + (timeData[i] / 128 - 1) * middle * 0.85;
+
+        if (i === 0) {
+            waveCtx.moveTo(x, y);
+        } else {
+            waveCtx.lineTo(x, y);
+        }
+    }
+
+    waveCtx.stroke();
+
+    waveCtx.fillStyle = "#a8bdd1";
+    waveCtx.font = "11px Arial";
+    waveCtx.fillText("Signal amplitude", 8, 15);
+}
+
+function drawSpectrum() {
+    const { width, height } = resizeCanvas(spectrumCanvas, spectrumCtx);
+
+    spectrumCtx.clearRect(0, 0, width, height);
+    drawGrid(spectrumCtx, width, height);
+
+    const nyquist = audioContext.sampleRate / 2;
+    const maxFrequency = Math.min(1000, nyquist);
+    const binWidth = audioContext.sampleRate / analyser.fftSize;
+
+    const usableBins = Math.min(
+        frequencyData.length,
+        Math.floor(maxFrequency / binWidth)
+    );
+
+    spectrumCtx.strokeStyle = "#20d6a0";
+    spectrumCtx.lineWidth = 2;
+    spectrumCtx.beginPath();
+
+    for (let i = 0; i < usableBins; i++) {
+        const hz = i * binWidth;
+        const x = (hz / maxFrequency) * width;
+        const db = frequencyData[i];
+
+        const normalized = Math.max(
+            0,
+            Math.min(1, (db + 100) / 100)
+        );
+
+        const y = height - normalized * (height - 18);
+
+        if (i === 0) {
+            spectrumCtx.moveTo(x, y);
+        } else {
+            spectrumCtx.lineTo(x, y);
+        }
+    }
+
+    spectrumCtx.stroke();
+
+    spectrumCtx.fillStyle = "#a8bdd1";
+    spectrumCtx.font = "11px Arial";
+    spectrumCtx.fillText("0 Hz", 5, height - 5);
+
+    spectrumCtx.textAlign = "right";
+    spectrumCtx.fillText(
+        Math.round(maxFrequency) + " Hz",
+        width - 5,
+        height - 5
+    );
+    spectrumCtx.textAlign = "left";
+}
+
+function calculateRMS() {
+    let sum = 0;
+
+    for (let i = 0; i < timeData.length; i++) {
+        const sample = (timeData[i] - 128) / 128;
+        sum += sample * sample;
+    }
+
+    return Math.sqrt(sum / timeData.length);
+}
+
+function detectDominantFrequency() {
+    const binWidth = audioContext.sampleRate / analyser.fftSize;
+
+    // Ignore very low frequencies and search up to 1000 Hz
+    // or the microphone's available Nyquist frequency.
+    const minBin = Math.max(1, Math.ceil(40 / binWidth));
+    const maxBin = Math.min(
+        frequencyData.length - 1,
+        Math.floor(Math.min(1000, audioContext.sampleRate / 2) / binWidth)
+    );
+
+    let strongestBin = -1;
+    let strongestLevel = -Infinity;
+
+    for (let i = minBin; i <= maxBin; i++) {
+        if (frequencyData[i] > strongestLevel) {
+            strongestLevel = frequencyData[i];
+            strongestBin = i;
+        }
+    }
+
+    // Avoid displaying a random frequency in silence.
+    if (strongestBin < 1 || strongestLevel < -75) {
+        return null;
+    }
+
+    // Interpolate around the strongest bin for a more precise estimate.
+    let offset = 0;
+
+    if (
+        strongestBin > minBin &&
+        strongestBin < maxBin
+    ) {
+        const left = frequencyData[strongestBin - 1];
+        const center = frequencyData[strongestBin];
+        const right = frequencyData[strongestBin + 1];
+
+        const denominator = left - 2 * center + right;
+
+        if (Math.abs(denominator) > 0.0001) {
+            offset = 0.5 * (left - right) / denominator;
+            offset = Math.max(-0.5, Math.min(0.5, offset));
+        }
+    }
+
+    return (strongestBin + offset) * binWidth;
+}
+
+function noteFromFrequency(hz) {
+    if (!Number.isFinite(hz) || hz <= 0) {
+        return "--";
+    }
+
+    const midi = Math.round(69 + 12 * Math.log2(hz / 440));
+    const names = [
+        "C", "C#", "D", "D#", "E", "F",
+        "F#", "G", "G#", "A", "A#", "B"
+    ];
+
+    const note = names[((midi % 12) + 12) % 12];
+    const octave = Math.floor(midi / 12) - 1;
+
+    return note + octave;
+}
+
+function analyzeFrame() {
+    if (!running || !analyser || !audioContext) {
+        return;
+    }
+
+    analyser.getByteTimeDomainData(timeData);
+    analyser.getFloatFrequencyData(frequencyData);
+
+    drawWaveform();
+    drawSpectrum();
+
+    const rms = calculateRMS();
+    const dbfs = rms > 0 ? 20 * Math.log10(rms) : -Infinity;
+
+    volumeText.textContent = Number.isFinite(dbfs)
+        ? dbfs.toFixed(1)
+        : "-∞";
+
+    const meterPercent = Math.max(
+        0,
+        Math.min(100, 100 * rms * 3)
+    );
+
+    meterFill.style.width = meterPercent + "%";
+
+    const hz = detectDominantFrequency();
+
+    if (hz === null) {
+        frequencyText.textContent = "--";
+        pitchText.textContent = "--";
+    } else {
+        frequencyText.textContent = hz.toFixed(1);
+        pitchText.textContent = noteFromFrequency(hz);
+    }
+
+    sampleRateText.textContent = audioContext.sampleRate.toLocaleString();
+
+    infoText.textContent =
+        "FFT size: " + analyser.fftSize +
+        " samples. Frequency-bin spacing: " +
+        (audioContext.sampleRate / analyser.fftSize).toFixed(2) +
+        " Hz. Display range: 0–" +
+        Math.round(Math.min(1000, audioContext.sampleRate / 2)) +
+        " Hz. Measurements are estimates and may vary with noise.";
+
+    animationId = requestAnimationFrame(analyzeFrame);
+}
+
+async function startAnalyzer() {
+    if (running) return;
+
+    if (!navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia) {
+        setStatus(
+            "Microphone access is unavailable. Open this page using HTTPS " +
+            "in a supported browser."
+        );
+        return;
+    }
+
+    startButton.disabled = true;
+    setStatus("Requesting microphone permission...");
+
+    try {
+        microphone = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false
+            },
+            video: false
+        });
+
+        const AudioContextClass =
+            window.AudioContext || window.webkitAudioContext;
+
+        if (!AudioContextClass) {
+            throw new Error("Web Audio API is not supported by this browser.");
         }
 
-        function drawSpectrum(data) {
-            const width = spectrumCanvas.width;
-            const height = spectrumCanvas.height;
+        audioContext = new AudioContextClass();
 
-            spectrumCtx.fillStyle = "#050a12";
-            spectrumCtx.fillRect(0, 0, width, height);
-            drawGrid(spectrumCtx, width, height, 5);
-
-            const barWidth = width / data.length;
-
-            for (let i = 0; i < data.length; i++) {
-                const barHeight = data[i] / 255 * (height - 8);
-
-                spectrumCtx.fillStyle = "#38bdf8";
-                spectrumCtx.fillRect(
-                    i * barWidth,
-                    height - barHeight,
-                    Math.max(1, barWidth - 1),
-                    barHeight
-                );
-            }
-
-            spectrumCtx.fillStyle = "#b8c9dc";
-            spectrumCtx.font = "12px Arial";
-            spectrumCtx.fillText("Low", 8, 15);
-            spectrumCtx.fillText("High", width - 38, 15);
+        if (audioContext.state === "suspended") {
+            await audioContext.resume();
         }
 
-        function drawHistory() {
-            const ctx = historyCtx;
-            const width = historyCanvas.width;
-            const height = historyCanvas.height;
-            const left = 55;
-            const right = width - 12;
-            const top = 20;
-            const bottom = height - 35;
-            const plotWidth = right - left;
-            const plotHeight = bottom - top;
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 8192;
+        analyser.smoothingTimeConstant =
+            Number(smoothingInput.value) / 100;
 
-            ctx.fillStyle = "#050a12";
-            ctx.fillRect(0, 0, width, height);
+        source = audioContext.createMediaStreamSource(microphone);
+        source.connect(analyser);
 
-            const now = performance.now();
-            const cutoff = now - HISTORY_SECONDS * 1000;
+        timeData = new Uint8Array(analyser.fftSize);
+        frequencyData = new Float32Array(analyser.frequencyBinCount);
 
-            while (historyData.length &&
-                   historyData[0].time < cutoff) {
-                historyData.shift();
-            }
+        running = true;
+        stopButton.disabled = false;
+        startButton.disabled = true;
 
-            const valid = historyData.filter(
-                point => point.frequency !== null
-            );
+        setStatus("Microphone active. Speak or make a sound to begin analysis.");
+        analyzeFrame();
 
-            let minFreq = 0;
-            let maxFreq = 1000;
-
-            if (valid.length) {
-                const values = valid.map(p => p.frequency);
-                const low = Math.min(...values);
-                const high = Math.max(...values);
-
-                if (high - low < 100) {
-                    minFreq = Math.max(0, low - 50);
-                    maxFreq = high + 50;
-                } else {
-                    const padding = (high - low) * 0.15;
-                    minFreq = Math.max(0, low - padding);
-                    maxFreq = high + padding;
-                }
-
-                if (maxFreq <= minFreq) maxFreq = minFreq + 100;
-            }
-
-            ctx.font = "12px Arial";
-            ctx.textAlign = "right";
-            ctx.textBaseline = "middle";
-            ctx.fillStyle = "#8ca8c4";
-            ctx.strokeStyle = "#172b40";
-            ctx.lineWidth = 1;
-
-            for (let i = 0; i <= 5; i++) {
-                const y = top + plotHeight * i / 5;
-                const value = maxFreq -
-                    (maxFreq - minFreq) * i / 5;
-
-                ctx.beginPath();
-                ctx.moveTo(left, y);
-                ctx.lineTo(right, y);
-                ctx.stroke();
-
-                ctx.fillText(
-                    Math.round(value) + " Hz",
-                    left - 7,
-                    y
-                );
-            }
-
-            ctx.textAlign = "center";
-            ctx.textBaseline = "top";
-
-            for (let seconds = 0; seconds <= HISTORY_SECONDS; seconds += 5) {
-                const x = left + plotWidth *
-                    seconds / HISTORY_SECONDS;
-
-                ctx.beginPath();
-                ctx.moveTo(x, top);
-                ctx.lineTo(x, bottom);
-                ctx.stroke();
-
-                ctx.fillText(
-                    "-" + (HISTORY_SECONDS - seconds) + "s",
-                    x,
-                    bottom + 8
-                );
-            }
-
-            ctx.save();
-            ctx.beginPath();
-            ctx.rect(left, top, plotWidth, plotHeight);
-            ctx.clip();
-
-            ctx.strokeStyle = "#54f5b7";
-            ctx.lineWidth = 2.5;
-            ctx.lineJoin = "round";
-            ctx.beginPath();
-
-            let penDown = false;
-
-            for (const point of historyData) {
-                const x = left + plotWidth *
-                    Math.max(0, point.time - cutoff) /
-                    (HISTORY_SECONDS * 1000);
-
-                if (point.frequency === null) {
-                    penDown = false;
-                    continue;
-                }
-
-                const y = bottom -
-                    (point.frequency - minFreq) /
-                    (maxFreq - minFreq) * plotHeight;
-
-                if (!penDown) {
-                    ctx.moveTo(x, y);
-                    penDown = true;
-                } else {
-                    ctx.lineTo(x, y);
-                }
-            }
-
-            ctx.stroke();
-            ctx.restore();
-
-            ctx.textAlign = "left";
-            ctx.textBaseline = "alphabetic";
+    } catch (error) {
+        if (microphone) {
+            microphone.getTracks().forEach(track => track.stop());
+            microphone = null;
         }
 
-        function estimateDominantFrequency(data) {
-            let maxIndex = 0;
-            let maxValue = 0;
+        running = false;
+        startButton.disabled = false;
+        stopButton.disabled = true;
 
-            // Ignore the very lowest bins to reduce DC/rumble errors.
-            for (let i = 2; i < data.length - 1; i++) {
-                if (data[i] > maxValue) {
-                    maxValue = data[i];
-                    maxIndex = i;
-                }
-            }
+        let message = error.message || "Unknown microphone error.";
 
-            if (maxValue <= 8 || maxIndex < 1) {
-                return null;
-            }
-
-            // Interpolate between neighboring FFT bins for
-            // a more precise frequency estimate.
-            const left = data[maxIndex - 1];
-            const center = data[maxIndex];
-            const right = data[maxIndex + 1];
-
-            const denominator = left - 2 * center + right;
-            let offset = 0;
-
-            if (denominator !== 0) {
-                offset = 0.5 * (left - right) / denominator;
-                offset = Math.max(-1, Math.min(1, offset));
-            }
-
-            const bin = maxIndex + offset;
-
-            return bin * audioContext.sampleRate / analyser.fftSize;
+        if (error.name === "NotAllowedError" ||
+            error.name === "PermissionDeniedError") {
+            message = "Microphone permission was denied. Allow microphone access in your browser settings and try again.";
+        } else if (error.name === "NotFoundError") {
+            message = "No microphone was found on this device.";
+        } else if (error.name === "NotReadableError") {
+            message = "The microphone may be in use by another app. Close that app and try again.";
         }
 
-        async function startListening() {
-            if (running) return;
+        setStatus("Could not start analyzer: " + message);
+        infoText.textContent = message;
 
-            try {
-                if (!navigator.mediaDevices ||
-                    !navigator.mediaDevices.getUserMedia) {
-                    throw new Error(
-                        "Microphone access requires HTTPS. Open the GitHub Pages website."
-                    );
-                }
+        await releaseAudioResources();
+    }
+}
 
-                statusText.textContent = "Requesting microphone permission...";
+async function releaseAudioResources() {
+    if (animationId !== null) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+    }
 
-                microphone = await navigator.mediaDevices.getUserMedia({
-                    audio: {
-                        echoCancellation: false,
-                        noiseSuppression: false,
-                        autoGainControl: false
-                    }
-                });
+    running = false;
 
-                audioContext = new (
-                    window.AudioContext ||
-                    window.webkitAudioContext
-                )();
+    if (source) {
+        try {
+            source.disconnect();
+        } catch (_) {}
+        source = null;
+    }
 
-                await audioContext.resume();
+    if (microphone) {
+        microphone.getTracks().forEach(track => track.stop());
+        microphone = null;
+    }
 
-                analyser = audioContext.createAnalyser();
-                analyser.fftSize = 8192;
-                analyser.smoothingTimeConstant = 0.65;
+    if (audioContext) {
+        const contextToClose = audioContext;
+        audioContext = null;
+        analyser = null;
 
-                source = audioContext.createMediaStreamSource(microphone);
-                source.connect(analyser);
+        try {
+            await contextToClose.close();
+        } catch (_) {}
+    }
+}
 
-                sampleRateText.textContent =
-                    audioContext.sampleRate.toLocaleString() + " Hz";
+async function stopAnalyzer() {
+    await releaseAudioResources();
 
-                historyData.length = 0;
-                running = true;
+    startButton.disabled = false;
+    stopButton.disabled = true;
 
-                startButton.disabled = true;
-                stopButton.disabled = false;
+    setStatus("Analyzer stopped. Press Start Analyzer to begin again.");
+    meterFill.style.width = "0%";
+    volumeText.textContent = "--";
+    frequencyText.textContent = "--";
+    pitchText.textContent = "--";
+    sampleRateText.textContent = "--";
+    infoText.textContent = "No microphone stream is active.";
 
-                statusText.textContent = "Listening to nearby sounds...";
-                analysisText.textContent = "Analyzing live audio";
-                historyStatus.textContent = "Collecting live measurements...";
+    drawIdleCanvases();
+}
 
-                updateAnalysis();
-            } catch (error) {
-                stopListening();
-                statusText.textContent =
-                    error.message || "Could not access the microphone.";
-                analysisText.textContent = "Unable to start";
-            }
-        }
+function drawIdleCanvases() {
+    for (const [canvas, context] of [
+        [waveformCanvas, waveCtx],
+        [spectrumCanvas, spectrumCtx]
+    ]) {
+        const { width, height } = resizeCanvas(canvas, context);
+        context.clearRect(0, 0, width, height);
+        drawGrid(context, width, height);
+    }
+}
 
-        function updateAnalysis() {
-            if (!running || !analyser || !audioContext) return;
+function resetReadings() {
+    frequencyText.textContent = "--";
+    volumeText.textContent = "--";
+    pitchText.textContent = "--";
+    meterFill.style.width = "0%";
+    setStatus(
+        running
+            ? "Readings cleared. Live analysis continues."
+            : "Readings cleared. Start the analyzer to begin."
+    );
+}
 
-            const spectrumData = new Uint8Array(
-                analyser.frequencyBinCount
-            );
+startButton.addEventListener("click", startAnalyzer);
+stopButton.addEventListener("click", stopAnalyzer);
+resetButton.addEventListener("click", resetReadings);
 
-            const timeData = new Float32Array(analyser.fftSize);
+smoothingInput.addEventListener("input", () => {
+    if (analyser) {
+        analyser.smoothingTimeConstant =
+            Number(smoothingInput.value) / 100;
+    }
+});
 
-            analyser.getByteFrequencyData(spectrumData);
-            analyser.getFloatTimeDomainData(timeData);
+window.addEventListener("resize", () => {
+    if (running) {
+        drawWaveform();
+        drawSpectrum();
+    } else {
+        drawIdleCanvases();
+    }
+});
 
-            let sumSquares = 0;
-
-            for (let i = 0; i < timeData.length; i++) {
-                sumSquares += timeData[i] * timeData[i];
-            }
-
-            const rms = Math.sqrt(sumSquares / timeData.length);
-            const decibels = rms > 0
-                ? 20 * Math.log10(rms)
-                : -Infinity;
-
-            levelText.textContent = Number.isFinite(decibels)
-                ? decibels.toFixed(1) + " dBFS"
-                : "Very quiet";
-
-            const frequency = estimateDominantFrequency(spectrumData);
-            const now = performance.now();
-
-            if (frequency !== null && Number.isFinite(frequency)) {
-                frequencyText.textContent =
-                    Math.round(frequency).toLocaleString() + " Hz";
-
-                historyData.push({
-                    time: now,
-                    frequency: frequency
-                });
-
-                analysisText.textContent = "Sound detected";
-                historyStatus.textContent =
-                    "Tracking " + Math.round(frequency) + " Hz";
-            } else {
-                frequencyText.textContent = "-- Hz";
-
-                // A gap prevents the graph from connecting across silence.
-                historyData.push({
-                    time: now,
-                    frequency: null
-                });
-
-                analysisText.textContent = "Waiting for a clearer sound";
-                historyStatus.textContent = "Waiting for sound...";
-            }
-
-            drawSpectrum(spectrumData);
-            drawHistory();
-
-            animationId = requestAnimationFrame(updateAnalysis);
-        }
-
-        function stopListening() {
-            running = false;
-
-            if (animationId !== null) {
-                cancelAnimationFrame(animationId);
-                animationId = null;
-            }
-
-            if (source) {
-                source.disconnect();
-                source = null;
-            }
-
-            if (microphone) {
-                microphone.getTracks().forEach(track => track.stop());
-                microphone = null;
-            }
-
-            if (audioContext) {
-                audioContext.close();
-                audioContext = null;
-            }
-
-            analyser = null;
-
-            startButton.disabled = false;
-            stopButton.disabled = true;
-
-            statusText.textContent = "Microphone is off.";
-            analysisText.textContent = "Stopped";
-            historyStatus.textContent =
-                "Stopped. Start listening to collect new measurements.";
-
-            drawHistory();
-        }
-
-        startButton.addEventListener("click", startListening);
-        stopButton.addEventListener("click", stopListening);
-
-        drawSpectrum(new Uint8Array(100));
-        drawHistory();
-    </script>
+drawIdleCanvases();
+</script>
 </body>
 </html>
