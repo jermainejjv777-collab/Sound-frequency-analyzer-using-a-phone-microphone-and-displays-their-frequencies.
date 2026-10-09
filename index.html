@@ -1,45 +1,38 @@
-Writing
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sound Frequency Analyzer</title>
+    <meta name="theme-color" content="#080d18">
+    <title>LIMITLESS — Sound Frequency Analyzer</title>
 
     <style>
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
-            padding: 20px;
+            padding: 16px;
             background: #080d18;
             color: #eaf4ff;
             font-family: Arial, sans-serif;
             text-align: center;
         }
 
-        h1 {
-            color: #61d9ff;
-            font-size: 27px;
-        }
-
-        p {
-            color: #b8c9dc;
-        }
+        h1 { color: #61d9ff; font-size: 27px; }
+        h2 { font-size: 21px; }
+        p { color: #b8c9dc; line-height: 1.5; }
 
         .panel {
-            max-width: 600px;
+            max-width: 650px;
             margin: 20px auto;
-            padding: 20px;
+            padding: 18px;
             background: #111c2e;
             border: 1px solid #24415d;
             border-radius: 15px;
         }
 
         button {
-            padding: 14px 22px;
+            padding: 13px 20px;
             margin: 6px;
             border: none;
             border-radius: 9px;
@@ -49,20 +42,17 @@ Writing
             font-weight: bold;
         }
 
-        button:disabled {
-            opacity: 0.5;
-        }
+        button:disabled { opacity: 0.5; }
 
         #frequency {
             font-size: 38px;
             font-weight: bold;
             color: #54f5b7;
             margin: 20px 0;
+            overflow-wrap: anywhere;
         }
 
-        #status {
-            color: #ffd166;
-        }
+        #status { color: #ffd166; }
 
         canvas {
             display: block;
@@ -75,11 +65,16 @@ Writing
 
         .details {
             text-align: left;
-            line-height: 1.9;
+            line-height: 2;
+        }
+
+        .graph-note {
+            font-size: 13px;
+            color: #8ca8c4;
         }
 
         footer {
-            margin-top: 25px;
+            margin: 28px 0 10px;
             color: #71869f;
             font-size: 12px;
         }
@@ -87,7 +82,6 @@ Writing
 </head>
 
 <body>
-
     <h1>Sound Frequency Analyzer</h1>
     <p>Listen to real sounds and analyze their frequencies.</p>
 
@@ -111,13 +105,23 @@ Writing
 
     <div class="panel">
         <h2>Frequency Spectrum</h2>
-        <p>Frequency energy across the microphone's input.</p>
+        <p>Frequency energy across the microphone input.</p>
         <canvas id="spectrum" width="600" height="220"></canvas>
+        <p class="graph-note">Left = lower frequencies. Right = higher frequencies.</p>
     </div>
 
-    <footer>
-        LIMITLESS — SOUND RESEARCH PROJECT
-    </footer>
+    <div class="panel">
+        <h2>Live Frequency History</h2>
+        <p>Track the dominant frequency as sounds change.</p>
+        <canvas id="history" width="600" height="260"></canvas>
+        <p class="graph-note">
+            The graph displays the last 30 seconds.
+            Vertical scale adjusts to detected frequencies.
+        </p>
+        <p id="historyStatus">Start listening to collect measurements.</p>
+    </div>
+
+    <footer>LIMITLESS — SOUND RESEARCH PROJECT</footer>
 
     <script>
         const startButton = document.getElementById("startButton");
@@ -127,8 +131,13 @@ Writing
         const levelText = document.getElementById("level");
         const sampleRateText = document.getElementById("sampleRate");
         const analysisText = document.getElementById("analysis");
-        const canvas = document.getElementById("spectrum");
-        const ctx = canvas.getContext("2d");
+        const historyStatus = document.getElementById("historyStatus");
+
+        const spectrumCanvas = document.getElementById("spectrum");
+        const spectrumCtx = spectrumCanvas.getContext("2d");
+
+        const historyCanvas = document.getElementById("history");
+        const historyCtx = historyCanvas.getContext("2d");
 
         let audioContext = null;
         let analyser = null;
@@ -137,29 +146,37 @@ Writing
         let animationId = null;
         let running = false;
 
-        function drawSpectrum(data) {
-            const width = canvas.width;
-            const height = canvas.height;
+        const HISTORY_SECONDS = 30;
+        const historyData = [];
 
-            ctx.fillStyle = "#050a12";
-            ctx.fillRect(0, 0, width, height);
-
+        function drawGrid(ctx, width, height, divisions = 5) {
             ctx.strokeStyle = "#172b40";
             ctx.lineWidth = 1;
 
-            for (let y = 0; y < height; y += 44) {
+            for (let i = 0; i <= divisions; i++) {
+                const y = i * height / divisions;
                 ctx.beginPath();
                 ctx.moveTo(0, y);
                 ctx.lineTo(width, y);
                 ctx.stroke();
             }
+        }
+
+        function drawSpectrum(data) {
+            const width = spectrumCanvas.width;
+            const height = spectrumCanvas.height;
+
+            spectrumCtx.fillStyle = "#050a12";
+            spectrumCtx.fillRect(0, 0, width, height);
+            drawGrid(spectrumCtx, width, height, 5);
 
             const barWidth = width / data.length;
 
             for (let i = 0; i < data.length; i++) {
-                const barHeight = (data[i] / 255) * height;
-                ctx.fillStyle = "#38bdf8";
-                ctx.fillRect(
+                const barHeight = data[i] / 255 * (height - 8);
+
+                spectrumCtx.fillStyle = "#38bdf8";
+                spectrumCtx.fillRect(
                     i * barWidth,
                     height - barHeight,
                     Math.max(1, barWidth - 1),
@@ -167,19 +184,185 @@ Writing
                 );
             }
 
-            ctx.fillStyle = "#b8c9dc";
+            spectrumCtx.fillStyle = "#b8c9dc";
+            spectrumCtx.font = "12px Arial";
+            spectrumCtx.fillText("Low", 8, 15);
+            spectrumCtx.fillText("High", width - 38, 15);
+        }
+
+        function drawHistory() {
+            const ctx = historyCtx;
+            const width = historyCanvas.width;
+            const height = historyCanvas.height;
+            const left = 55;
+            const right = width - 12;
+            const top = 20;
+            const bottom = height - 35;
+            const plotWidth = right - left;
+            const plotHeight = bottom - top;
+
+            ctx.fillStyle = "#050a12";
+            ctx.fillRect(0, 0, width, height);
+
+            const now = performance.now();
+            const cutoff = now - HISTORY_SECONDS * 1000;
+
+            while (historyData.length &&
+                   historyData[0].time < cutoff) {
+                historyData.shift();
+            }
+
+            const valid = historyData.filter(
+                point => point.frequency !== null
+            );
+
+            let minFreq = 0;
+            let maxFreq = 1000;
+
+            if (valid.length) {
+                const values = valid.map(p => p.frequency);
+                const low = Math.min(...values);
+                const high = Math.max(...values);
+
+                if (high - low < 100) {
+                    minFreq = Math.max(0, low - 50);
+                    maxFreq = high + 50;
+                } else {
+                    const padding = (high - low) * 0.15;
+                    minFreq = Math.max(0, low - padding);
+                    maxFreq = high + padding;
+                }
+
+                if (maxFreq <= minFreq) maxFreq = minFreq + 100;
+            }
+
             ctx.font = "12px Arial";
-            ctx.fillText("Low frequency", 8, height - 8);
-            ctx.fillText("High frequency", width - 100, height - 8);
+            ctx.textAlign = "right";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "#8ca8c4";
+            ctx.strokeStyle = "#172b40";
+            ctx.lineWidth = 1;
+
+            for (let i = 0; i <= 5; i++) {
+                const y = top + plotHeight * i / 5;
+                const value = maxFreq -
+                    (maxFreq - minFreq) * i / 5;
+
+                ctx.beginPath();
+                ctx.moveTo(left, y);
+                ctx.lineTo(right, y);
+                ctx.stroke();
+
+                ctx.fillText(
+                    Math.round(value) + " Hz",
+                    left - 7,
+                    y
+                );
+            }
+
+            ctx.textAlign = "center";
+            ctx.textBaseline = "top";
+
+            for (let seconds = 0; seconds <= HISTORY_SECONDS; seconds += 5) {
+                const x = left + plotWidth *
+                    seconds / HISTORY_SECONDS;
+
+                ctx.beginPath();
+                ctx.moveTo(x, top);
+                ctx.lineTo(x, bottom);
+                ctx.stroke();
+
+                ctx.fillText(
+                    "-" + (HISTORY_SECONDS - seconds) + "s",
+                    x,
+                    bottom + 8
+                );
+            }
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(left, top, plotWidth, plotHeight);
+            ctx.clip();
+
+            ctx.strokeStyle = "#54f5b7";
+            ctx.lineWidth = 2.5;
+            ctx.lineJoin = "round";
+            ctx.beginPath();
+
+            let penDown = false;
+
+            for (const point of historyData) {
+                const x = left + plotWidth *
+                    Math.max(0, point.time - cutoff) /
+                    (HISTORY_SECONDS * 1000);
+
+                if (point.frequency === null) {
+                    penDown = false;
+                    continue;
+                }
+
+                const y = bottom -
+                    (point.frequency - minFreq) /
+                    (maxFreq - minFreq) * plotHeight;
+
+                if (!penDown) {
+                    ctx.moveTo(x, y);
+                    penDown = true;
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.textAlign = "left";
+            ctx.textBaseline = "alphabetic";
+        }
+
+        function estimateDominantFrequency(data) {
+            let maxIndex = 0;
+            let maxValue = 0;
+
+            // Ignore the very lowest bins to reduce DC/rumble errors.
+            for (let i = 2; i < data.length - 1; i++) {
+                if (data[i] > maxValue) {
+                    maxValue = data[i];
+                    maxIndex = i;
+                }
+            }
+
+            if (maxValue <= 8 || maxIndex < 1) {
+                return null;
+            }
+
+            // Interpolate between neighboring FFT bins for
+            // a more precise frequency estimate.
+            const left = data[maxIndex - 1];
+            const center = data[maxIndex];
+            const right = data[maxIndex + 1];
+
+            const denominator = left - 2 * center + right;
+            let offset = 0;
+
+            if (denominator !== 0) {
+                offset = 0.5 * (left - right) / denominator;
+                offset = Math.max(-1, Math.min(1, offset));
+            }
+
+            const bin = maxIndex + offset;
+
+            return bin * audioContext.sampleRate / analyser.fftSize;
         }
 
         async function startListening() {
+            if (running) return;
+
             try {
                 if (!navigator.mediaDevices ||
                     !navigator.mediaDevices.getUserMedia) {
                     throw new Error(
-                        "Microphone access requires HTTPS or localhost. " +
-                        "Open this page through GitHub Pages."
+                        "Microphone access requires HTTPS. Open the GitHub Pages website."
                     );
                 }
 
@@ -194,7 +377,8 @@ Writing
                 });
 
                 audioContext = new (
-                    window.AudioContext || window.webkitAudioContext
+                    window.AudioContext ||
+                    window.webkitAudioContext
                 )();
 
                 await audioContext.resume();
@@ -209,24 +393,27 @@ Writing
                 sampleRateText.textContent =
                     audioContext.sampleRate.toLocaleString() + " Hz";
 
+                historyData.length = 0;
                 running = true;
+
                 startButton.disabled = true;
                 stopButton.disabled = false;
+
                 statusText.textContent = "Listening to nearby sounds...";
                 analysisText.textContent = "Analyzing live audio";
+                historyStatus.textContent = "Collecting live measurements...";
 
                 updateAnalysis();
-
             } catch (error) {
-                statusText.textContent = error.message ||
-                    "Could not access the microphone.";
-                analysisText.textContent = "Unable to start";
                 stopListening();
+                statusText.textContent =
+                    error.message || "Could not access the microphone.";
+                analysisText.textContent = "Unable to start";
             }
         }
 
         function updateAnalysis() {
-            if (!running || !analyser) return;
+            if (!running || !analyser || !audioContext) return;
 
             const spectrumData = new Uint8Array(
                 analyser.frequencyBinCount
@@ -252,31 +439,36 @@ Writing
                 ? decibels.toFixed(1) + " dBFS"
                 : "Very quiet";
 
-            let maxIndex = 0;
-            let maxValue = 0;
+            const frequency = estimateDominantFrequency(spectrumData);
+            const now = performance.now();
 
-            for (let i = 1; i < spectrumData.length; i++) {
-                if (spectrumData[i] > maxValue) {
-                    maxValue = spectrumData[i];
-                    maxIndex = i;
-                }
-            }
-
-            const frequency =
-                maxIndex * audioContext.sampleRate / analyser.fftSize;
-
-            if (maxValue > 8 && frequency > 0) {
+            if (frequency !== null && Number.isFinite(frequency)) {
                 frequencyText.textContent =
                     Math.round(frequency).toLocaleString() + " Hz";
+
+                historyData.push({
+                    time: now,
+                    frequency: frequency
+                });
+
+                analysisText.textContent = "Sound detected";
+                historyStatus.textContent =
+                    "Tracking " + Math.round(frequency) + " Hz";
             } else {
                 frequencyText.textContent = "-- Hz";
+
+                // A gap prevents the graph from connecting across silence.
+                historyData.push({
+                    time: now,
+                    frequency: null
+                });
+
+                analysisText.textContent = "Waiting for a clearer sound";
+                historyStatus.textContent = "Waiting for sound...";
             }
 
-            analysisText.textContent = maxValue > 8
-                ? "Sound detected"
-                : "Waiting for a clearer sound";
-
             drawSpectrum(spectrumData);
+            drawHistory();
 
             animationId = requestAnimationFrame(updateAnalysis);
         }
@@ -305,18 +497,23 @@ Writing
             }
 
             analyser = null;
+
             startButton.disabled = false;
             stopButton.disabled = true;
 
             statusText.textContent = "Microphone is off.";
             analysisText.textContent = "Stopped";
+            historyStatus.textContent =
+                "Stopped. Start listening to collect new measurements.";
+
+            drawHistory();
         }
 
         startButton.addEventListener("click", startListening);
         stopButton.addEventListener("click", stopListening);
 
         drawSpectrum(new Uint8Array(100));
+        drawHistory();
     </script>
-
 </body>
 </html>
